@@ -19,8 +19,6 @@ app.use((req, res, next) => {
     next();
   });
 
-
- 
  app.get('/', async (req, res) => {
     try {
         await sql.connect(sqlConfig)
@@ -30,60 +28,43 @@ app.use((req, res, next) => {
     catch (err) { return res.status(500).json({ message: err.message }) }
  })
 
- app.post('/', async(req,res) =>{
-    const {nome, email} = req.body
-    /*
-    var connection = sql.Connection(sqlConfig, function(err) {
-        var r = new sql.Request(connection);
-        r.input('nome', sql.VarChar, nome);
-        r.input('email', sql.VarChar, email);
-        r.multiple = true;
-        r.query("INSERT INTO usuario (nome, email) VALUES (@nome, @email)", function(err, recordsets) {
-    
-            connection.close();
-        });
-    });
-    */
+ app.post('/', async (req,res) => {
+    const { nome, email } = req.body
     try {
-        await sql.connect(sqlConfig)
-            const ps = new sql.PreparedStatement()
-            ps.input('nome', sql.VarChar, nome);
-            ps.input('email', sql.VarChar, email);
-            const result = await sql.query("INSERT INTO usuario (nome, email) VALUES (@nome, @email)", function(err, recordsets) {
-                console.log(recordsets)
-                console.log(err)
-            })
-        return res.status(200).json(result);
+        let pool = await sql.connect(sqlConfig)
+        let result = await pool.request()
+            .input('nome', sql.VarChar, nome)
+            .input('email', sql.VarChar, email)
+            .query('INSERT INTO usuario(nome, email) VALUES (@nome, @email)')
+        return res.status(200).json(result.recordset);
     } 
     catch (err) { return res.status(500).json({ message: err.message }) }
 })
 
 app.put('/usuarios/:id', async(req,res) =>{
     const nome = req.body.nome
-    const dataNascimento  = req.body.dataNascimento
+    const email  = req.body.email
     const id = req.params.id 
-
     try {
-        await sql.connect(sqlConfig)
-            const result = await sql.query('UPDATE usuario SET nome=?, dataNascimento=? WHERE id=?',[nome, dataNascimento,id ]);
-        return res.status(200).json(result);
+        let pool = await sql.connect(sqlConfig)
+        let result = await pool.request()
+            .input('nome', sql.VarChar, nome)
+            .input('email', sql.VarChar, email)
+            .input('id', sql.VarChar, id)
+            .query('UPDATE usuario SET nome=@nome , email=@email  WHERE id=@id')
+        return res.status(200).json(result.recordset);
     } 
     catch (err) { return res.status(500).json({ message: err.message }) }
 })
 
-
 app.delete('/usuarios/:id', async(req, res) => {
+    const id = req.params.id 
     try {
-        let id = req.params.id
-        const ps = new sql.PreparedStatement()
-        ps.input("param", sql.Int, id)
-        sql.query('Delete FROM usuario WHERE id=@param')
-
-        /*
-        await sql.connect(sqlConfig)
-            const result = await sql.query('Delete FROM usuario WHERE id=?', (id) );
+        let pool = await sql.connect(sqlConfig)
+        let result = await pool.request()
+            .input('id', sql.VarChar, id)
+            .query('Delete FROM usuario WHERE id=@id')
         return res.status(200).json(result);
-        */
     } 
     catch (err) { return res.status(500).json({ message: err.message }) }
 })
